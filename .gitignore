@@ -1,0 +1,8 @@
+node_modules
+# Keep environment variables out of version control
+/node_modules/ 
+**/node_modules 
+.env
+devpdf
+.DS_Store
+Express/node_modules

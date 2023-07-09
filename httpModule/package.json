@@ -1,0 +1,15 @@
+{
+  "name": "httpmodule",
+  "version": "1.0.0",
+  "description": "the full set of 6 key classes exported by the http module is:",
+  "main": "0.0.basic_server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "ws": "^8.13.0"
+  }
+}

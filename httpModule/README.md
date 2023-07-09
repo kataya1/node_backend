@@ -21,13 +21,6 @@ node:net module is low level sockets. you can use it to build http or websockets
 
 
 
-### hope to do
-
-- create a basic server class with a listen method
-- create a basic express library 
-- maybe write a basic ws library 
-
-- websockets on different routes
 
 
 ------------
@@ -81,3 +74,10 @@ It seems request event listener doesn't trigger on upgrade event
 - connection 
 - request or upgrade
 - close 
+
+### hope to do
+- routing using http.server
+    - create a basic express library 
+- create a basic server class with a listen method
+- maybe write a basic ws library (probably gonna need to use sockets and node:net module)
+- websockets on different routes

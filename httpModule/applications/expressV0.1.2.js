@@ -7,9 +7,9 @@
 // --- v0.1.2
 // caller function: function that calls routes
 // bugs: makerout function , trailing slashes 
-
-// ------ next up ------
 // - Handle errors centrally, like 404s. Handle 404 errors for undefined routes at the end.
+// ------ next up ------
+
 // -  users/:id 
 
 const http = require('http');

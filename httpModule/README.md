@@ -76,8 +76,31 @@ It seems request event listener doesn't trigger on upgrade event
 - close 
 
 ### hope to do
-- routing using http.server
+- routing using http.server 
     - create a basic express library 
-- create a basic server class with a listen method
-- maybe write a basic ws library (probably gonna need to use sockets and node:net module)
+- (canceled) create a basic server class with a listen method (need node:net module)
+- (canceled) maybe write a basic ws library (probably gonna need to use sockets and node:net module)
 - websockets on different routes
+
+
+----- 
+ServerResponse class
+
+- response.getHeader(name): Get the value of a response header that has already been set.
+- response.removeHeader(name): Remove a header that has already been set. 
+- response.headersSent: Boolean indicating if the headers have been sent to the client yet. Useful for checking if you can still set/change headers.
+- response.socket: The underlying socket handling the response. Useful for advanced use cases.
+- response.connection: The Net.Socket object associated with the response.
+- response.finished: Boolean indicating if the response has been finished (with res.end()).
+- response.writableEnded: Boolean indicating if res.end() has been called.
+- response.sendDate: Boolean indicating if the Date header will be automatically set. Default true.
+- response.getHeaderNames(): Get an array of the names of the headers that have been set.
+
+-----
+IncomingMessage class
+
+it's weird that the http documentation doesn't have the data event? in node:stream
+
+1. http.ClientRequest and http.IncomingMessage inherit from stream.Readable, a readable stream class.
+2. The stream.Readable class emits 'data' and 'end' events, which http.ClientRequest and http.IncomingMessage inherit.
+[link](https://nodejs.org/docs/latest-v18.x/api/stream.html#class-streamreadable)

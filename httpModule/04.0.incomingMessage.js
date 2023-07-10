@@ -3,28 +3,35 @@ const http = require('http');
 const url = require('url');
 
 const server = http.createServer((req, res) => {
-
+    const headers = req.headers
     const method = req.method;
     const reqUrl = url.parse(req.url, true);
     const pathName = reqUrl.pathname; //string
     const query = reqUrl.query; // obj
+    const [statusCode, statusMessage] = [req.statusCode, req.statusMessage] //?
     console.log('method:', method)
-    console.log('pathname:', path)
+    console.log('pathname:', pathName)
     console.log('query', query)
-
+    let body = '';
     req.on('data', (chunk) => {
         // stream data chunks
+        body += chunk;
+        console.log('Received data:', chunk);
     });
-
+    // it's weird that the http documentation doesn't have the data event? in node:stream the class extendes stream.readable
     req.on('end', () => {
         // full body received  
+        console.log('Request body ended');
+        // parse body
+        const parsedBody = JSON.parse(body);
+        console.log(parsedBody)
+        res.end(body)
     });
-    res.statusCode = 200;
-    // Set Content-Type header to let client know we're sending plain text
-    res.setHeader('Content-Type', 'text/plain');
 
-    // End the response by sending 'Hello World!' body content  
-    res.end('Hello World!');
+    req.on('close', () => {
+        console.log('Client disconnected');
+    });
+
 });
 
 

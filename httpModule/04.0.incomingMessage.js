@@ -3,6 +3,7 @@ const http = require('http');
 const url = require('url');
 
 const server = http.createServer((req, res) => {
+    console.log('🍅', req.params)
     const headers = req.headers
     const method = req.method;
     const reqUrl = url.parse(req.url, true);

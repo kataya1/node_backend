@@ -1,4 +1,4 @@
-// I'll start with a basic idea.
+//  I'll start with a basic idea.
 //  I'll have a hash map. that have the routes as a key. 
 //  The value is an object with the functions corresponding to the methods. 
 //  the functions of course take the req and res inputs.  
@@ -8,8 +8,11 @@
 // caller function: function that calls routes
 // bugs: makerout function , trailing slashes 
 // - Handle errors centrally, like 404s. Handle 404 errors for undefined routes at the end.
+// --- V.0.1.3
+// users/:id 
 // ------ next up ------
-// -  users/:id 
+// ERROR HANDLING
+// 
 
 
 const http = require('http'); // Import Node.js core http module
@@ -35,18 +38,19 @@ const routeTrie = new TrieNode('root', '/');
 // Insert route into trie
 function paramRoutePrep(route) {
     // a new function routePrep which will be used within the assign function to save the routes in the trie.
-    const parts = route.split('/');
+    const parts = route.slice(1).split('/'); // to remove the first empty element from the parts array
 
     let currNode = routeTrie;
     for (let part of parts) {
         if (part.startsWith(':')) {
-            // Parameter node
-            currNode.children[part] = new TrieNode('param', part.slice(1));
+            // Parameter node 
+            currNode.children[':param'] = new TrieNode('param', part.slice(1));
+            currNode = currNode.children[':param'];
         } else {
             // Static path node
             currNode.children[part] = new TrieNode('path', part);
+            currNode = currNode.children[part];
         }
-        currNode = currNode.children[part];
     }
 }
 
@@ -82,47 +86,74 @@ assign('/user', 'POST', (req, res) => {
     console.log('post /users')
 })
 assign('/user/:userId/post/:postId', 'GET', (req, res) => {
-    console.log('/user/:userId/post/:postId')
+    // console.log(req.path)
     console.log(req.params)
 });
 
 // ------------
-const routeResolver = (pathName) => {
+const paramRouteResolver = (pathName) => {
 
     // pathName = "/user/123/post/31a"
-    // imagine a function called routeResolver that takes pathName as input and the return (string) is assigned to a route variable. for example the function will take "/user/12" and return "/user/:id" .this function is called inside the caller function and the return will be the route checked to see if it's contained in the routes map. i'm thinking this function needs to return params as well, since well need to know what the id is.
-
-    let route;
+    // imagine a function called paramRouteResolver that takes pathName as input and the return (string) is assigned to a route variable. for example the function will take "/user/12" and return "/user/:id" .this function is called inside the caller function and the return will be the route checked to see if it's contained in the routes map. i'm thinking this function needs to return params as well, since well need to know what the id is.
+    let route = '';
     let params = {};
-    return { route, params }
+    let pathParts = pathName.split('/').filter(p => p); // to remove the empty first element from the parts array
+
+    let currNode = routeTrie;
+    
+    for (let part of pathParts) {
+
+      if (currNode.children[part]) {
+        currNode = currNode.children[part]; 
+        route += `/${part}`; 
+      } else if (currNode.children[':param']) {
+        let paramName = currNode.children[':param'].data;
+        params[paramName] = part;
+        route += `/:${paramName}`; 
+        currNode = currNode.children[":param"];
+      } else {
+        break; 
+      }
+    }
+
+    return { route, params }; 
 }
 
 
 // Route handler function  
 const caller = (req, res) => {
-    try {
+    // try {
         let reqUrl = URL.parse(req.url, true) // Parse request URL
         let method = req.method // Get request method
-        let route = reqUrl.pathname.replace(/\/$/, '') || '/' // Normalize pathname
-        let params = {};
-        if (!routes.has(route)) {
-            let { route, params } = routeResolver(pathName) || {};
-            if (!route) throw '404'
+        let endpoint = reqUrl.pathname.replace(/\/$/, '') || '/' // Normalize pathname
+        let parameters = {};
+        if (!routes.has(endpoint)) {
+            let {route, params} = paramRouteResolver(endpoint) 
+            // [endpoint, parameters] = [route, params]
+            endpoint = route
+            parameters = params
+            if (!routes.has(route)) throw '404'
         }
 
-        req.params = params
+        req.params = parameters
 
-        let handler = routes.get(pathName)[method.toUpperCase()] // Get route handler
+        let handler = routes.get(endpoint)[method.toUpperCase()] // Get route handler
         handler(req, res) // Call handler
 
-    } catch (err) {
-        res.end(err.message) // Send error message
-    }
+    // } catch (err) {
+    //     console.log(err)
+    //     if (err === '404') {
+    //         res.statusCode = 404
+    //         res.end('Not found')
+    //       } else {
+    //         res.end(err.message)
+    //       }
+    // }
 }
 
 // Create server
 const server = http.createServer((req, res) => {
-
+    // request event
     caller(req, res) // Handle all requests
 })
 

@@ -78,7 +78,7 @@ It seems request event listener doesn't trigger on upgrade event
 ### hope to do
 - routing using http.server 
     - create a basic express library 
-- (canceled) create a basic server class with a listen method (need node:net module)
+- (canceled) create a basic server class with a listen method (need node:net module) 
 - (canceled) maybe write a basic ws library (probably gonna need to use sockets and node:net module)
 - websockets on different routes
 
@@ -104,3 +104,54 @@ it's weird that the http documentation doesn't have the data event? in node:stre
 1. http.ClientRequest and http.IncomingMessage inherit from stream.Readable, a readable stream class.
 2. The stream.Readable class emits 'data' and 'end' events, which http.ClientRequest and http.IncomingMessage inherit.
 [link](https://nodejs.org/docs/latest-v18.x/api/stream.html#class-streamreadable)
+
+
+-----
+
+i'm thinking that instead of writing ErrorHandler.send(res, 400);  we should have res.error(400, msg) i think this is a very nice approach but i need you to critique it. ofcoure now we need to extend the serverResponse class but the problem is that when we get the request event we already have instances of the original serverResponse class. we can ofcourse add methods and fields to these instances but i don't want it like that. how do we intercept the instantiation from the serverResponse class and make it instantiate from our modified class
+
+I don't really know much about http.server huh! The past me already knew that that's why it wrote "create a basic server class with a listen method (need node:net module) " in the hope to do. 
+i'll try to intercept the serverResponse object instantiation without diving into the node:net module
+
+Skimming throw the node lib/http and lib/__http__server.js
+too much
+
+maybe the createServer function 
+
+What!!!! createServer functions take options? OPTIONS can have IncomingMessage class (req) and ServerResponse class (res)
+
+---
+I have this code 
+```js
+const http = require('http');
+
+class CustomResponse extends http.ServerResponse {
+
+  error(status, message) {
+    
+    this.statusCode = status;
+    
+    if(!message) {
+      message = http.STATUS_CODES[status]; 
+    }
+    
+    this.setHeader('Content-Type', 'application/json');
+    this.writeHead(status, message); 
+    
+    this.end(JSON.stringify({
+      status,
+      message
+    }));
+
+  }
+
+}
+
+const server = http.createServer({
+  ServerResponse: CustomResponse
+}, (req, res) => {
+
+  res.error(500); // Uses STATUS_CODES message
+
+});
+```i'm wondering if res.error() should just emit the error event the i would add an event listener for the error event to the server. would that be better?

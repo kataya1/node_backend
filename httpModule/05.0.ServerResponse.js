@@ -12,6 +12,8 @@ http.createServer((req, res) => {
     res.setHeader('Content-Type', 'application/json');
     res.end(JSON.stringify({ name: 'John' })); // sends 
 
+    // res.send() // doesn't exist here (added in express)
+    // res.json() // doesn't exist here (added in express)
 
     res.end(); // ends and sends the response
 }).listen(3000);

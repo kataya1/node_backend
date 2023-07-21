@@ -9,17 +9,48 @@
 // bugs: makerout function , trailing slashes 
 // - Handle errors centrally, like 404s. Handle 404 errors for undefined routes at the end.
 // --- V.0.1.3
-// users/:id 
-// ------ next up ------
-// ERROR HANDLING
+// users/:id URL Parameters ( TrieNode, paramRoutePrep, paramRouteResolver)
 // 
+//
+// ------ next up ------
+// ERROR HANDLING (after deleperation we made res.error(status, message?))
+// extending http.ServerResponse to have res.json() and res.send()
+// Middle ware
 
 
 const http = require('http'); // Import Node.js core http module
-const path = require('path'); // Import path module 
+
 const URL = require('url') // Import url module for URL parsing
 
 const routes = new Map() // Create a Map to store the routes
+
+const { IncomingMessage, ServerResponse } = http;
+class CustomIncomingMessage extends IncomingMessage {
+    constructor() {
+        super();
+        this.params = {}; 
+        
+      }
+}
+class CustomServerResponse extends ServerResponse {
+
+    error(status = 100, message = '') {
+    
+        this.statusCode = status;
+        
+        if(!message) {
+          message = http.STATUS_CODES[status]; 
+        }
+        
+        this.setHeader('Content-Type', 'application/json');
+        this.writeHead(status, message); 
+        this.end(JSON.stringify({
+          status,
+          message
+        }));
+    
+      }
+}
 
 // Trie node 
 class TrieNode {
@@ -75,19 +106,20 @@ const assign = (route, method, callback) => {
 
 // --------- Example route handlers ---------- 
 assign('/', 'GET', (req, res) => {
-    console.log('get /')
+    res.end('get /')
 })
 
-assign('/user', 'GET', (req, res) => {
-    console.log('get /users')
+assign('/users', 'GET', (req, res) => {
+    res.end('get /users')
 
 })
-assign('/user', 'POST', (req, res) => {
-    console.log('post /users')
+assign('/users', 'POST', (req, res) => {
+    res.end('post /users')
 })
-assign('/user/:userId/post/:postId', 'GET', (req, res) => {
-    // console.log(req.path)
-    console.log(req.params)
+assign('/users/:userId/posts/:postId', 'GET', (req, res) => {
+    // res.end(req.path)
+    res.writeHead()
+    res.end(JSON.stringify(req.params));
 });
 
 // ------------
@@ -122,7 +154,7 @@ const paramRouteResolver = (pathName) => {
 
 // Route handler function  
 const caller = (req, res) => {
-    // try {
+    try {
         let reqUrl = URL.parse(req.url, true) // Parse request URL
         let method = req.method // Get request method
         let endpoint = reqUrl.pathname.replace(/\/$/, '') || '/' // Normalize pathname
@@ -140,24 +172,32 @@ const caller = (req, res) => {
         let handler = routes.get(endpoint)[method.toUpperCase()] // Get route handler
         handler(req, res) // Call handler
 
-    // } catch (err) {
-    //     console.log(err)
-    //     if (err === '404') {
-    //         res.statusCode = 404
-    //         res.end('Not found')
-    //       } else {
-    //         res.end(err.message)
-    //       }
-    // }
+    } catch (err) {
+        console.log(err)
+        if (err === '404') {
+            res.statusCode = 404
+            res.end('route Not found')
+          } else {
+            res.end(err.message)
+          }
+    } finally{
+        res.end()
+    }
 }
 
 // Create server
-const server = http.createServer((req, res) => {
+const server = http.createServer( {
+    IncomingMessage: CustomIncomingMessage,
+    ServerResponse: CustomServerResponse  
+})
+
+server.addListener('request',(req, res) => {
     // request event
     caller(req, res) // Handle all requests
-})
+
+} )
 
 // Start server
 server.listen(3000, () => {
-    console.log('listening ')
+    console.log('listening on port 3000')
 });

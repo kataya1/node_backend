@@ -10,11 +10,13 @@
 // - Handle errors centrally, like 404s. Handle 404 errors for undefined routes at the end.
 // --- V.0.1.3
 // users/:id URL Parameters ( TrieNode, paramRoutePrep, paramRouteResolver)
-// 
+// --- V.0.1.4
+// ERROR HANDLING (after deleperation we made res.error(status, message?))
 //
 // ------ next up ------
-// ERROR HANDLING (after deleperation we made res.error(status, message?))
 // extending http.ServerResponse to have res.json() and res.send()
+// module, export assign, (how do you make the user create a server using the custom classes? export a custom createServer?, what if he wanted to pass his own options, does express expose it's own custom incomingMessage class, serverResponse class?)
+
 // Middle ware
 
 
@@ -28,28 +30,20 @@ const { IncomingMessage, ServerResponse } = http;
 class CustomIncomingMessage extends IncomingMessage {
     constructor() {
         super();
-        this.params = {}; 
-        
-      }
+        this.params = {};
+
+    }
 }
 class CustomServerResponse extends ServerResponse {
 
-    error(status = 100, message = '') {
-    
-        this.statusCode = status;
-        
-        if(!message) {
-          message = http.STATUS_CODES[status]; 
-        }
-        
+    error(status = 100, message = http.STATUS_CODES[status]) {
+        this.statusCode = status; // set's the status code on the header 
         this.setHeader('Content-Type', 'application/json');
-        this.writeHead(status, message); 
+        // this.writeHead(status, http.STATUS_CODES[status]); 
         this.end(JSON.stringify({
-          status,
-          message
+            message
         }));
-    
-      }
+    }
 }
 
 // Trie node 
@@ -97,7 +91,7 @@ const makeRoute = (route) => {
 
 // Assign a callback to a route + method combination
 const assign = (route, method, callback) => {
-    if (!http.METHODS.includes(method.toUpperCase())) throw new Error('Unknown method')
+    if (!http.METHODS.includes(method.toUpperCase())) throw new Error('Unknown method' + method)
     if (route.includes(":")) paramRoutePrep(route)
     let obj = makeRoute(route) // Get route object
 
@@ -117,9 +111,17 @@ assign('/users', 'POST', (req, res) => {
     res.end('post /users')
 })
 assign('/users/:userId/posts/:postId', 'GET', (req, res) => {
-    // res.end(req.path)
-    res.writeHead()
+
     res.end(JSON.stringify(req.params));
+});
+
+// error routes
+assign('/error1', 'GET', (req, res) => {
+    throw 418;
+});
+
+assign('/error2', 'GET', (req, res) => {
+    res.error(418, 'It\'s teatime bitch!');
 });
 
 // ------------
@@ -132,23 +134,23 @@ const paramRouteResolver = (pathName) => {
     let pathParts = pathName.split('/').filter(p => p); // to remove the empty first element from the parts array
 
     let currNode = routeTrie;
-    
+
     for (let part of pathParts) {
 
-      if (currNode.children[part]) {
-        currNode = currNode.children[part]; 
-        route += `/${part}`; 
-      } else if (currNode.children[':param']) {
-        let paramName = currNode.children[':param'].data;
-        params[paramName] = part;
-        route += `/:${paramName}`; 
-        currNode = currNode.children[":param"];
-      } else {
-        break; 
-      }
+        if (currNode.children[part]) {
+            currNode = currNode.children[part];
+            route += `/${part}`;
+        } else if (currNode.children[':param']) {
+            let paramName = currNode.children[':param'].data;
+            params[paramName] = part;
+            route += `/:${paramName}`;
+            currNode = currNode.children[":param"];
+        } else {
+            break;
+        }
     }
 
-    return { route, params }; 
+    return { route, params };
 }
 
 
@@ -160,42 +162,43 @@ const caller = (req, res) => {
         let endpoint = reqUrl.pathname.replace(/\/$/, '') || '/' // Normalize pathname
         let parameters = {};
         if (!routes.has(endpoint)) {
-            let {route, params} = paramRouteResolver(endpoint) 
-            // [endpoint, parameters] = [route, params]
+            let { route, params } = paramRouteResolver(endpoint)
+            // [endpoint, parameters] = [route, params] // why doesn't this work?
             endpoint = route
             parameters = params
-            if (!routes.has(route)) throw '404'
+            if (!routes.has(route)) throw 404
         }
 
         req.params = parameters
-
+        // assigned callback function 
         let handler = routes.get(endpoint)[method.toUpperCase()] // Get route handler
+        if (!handler) throw 405;
         handler(req, res) // Call handler
 
     } catch (err) {
         console.log(err)
-        if (err === '404') {
-            res.statusCode = 404
-            res.end('route Not found')
-          } else {
-            res.end(err.message)
-          }
-    } finally{
+        if (typeof err === 'number') {
+            res.error(err);
+        } else {
+            console.log(err);
+            res.error();
+        }
+    } finally {
         res.end()
     }
 }
 
 // Create server
-const server = http.createServer( {
+const server = http.createServer({
     IncomingMessage: CustomIncomingMessage,
-    ServerResponse: CustomServerResponse  
+    ServerResponse: CustomServerResponse
 })
 
-server.addListener('request',(req, res) => {
+server.addListener('request', (req, res) => {
     // request event
     caller(req, res) // Handle all requests
 
-} )
+})
 
 // Start server
 server.listen(3000, () => {

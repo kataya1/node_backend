@@ -9,14 +9,15 @@
 // bugs: makerout function , trailing slashes 
 // - Handle errors centrally, like 404s. Handle 404 errors for undefined routes at the end.
 // --- V.0.1.3
-// users/:id URL Parameters ( TrieNode, paramRoutePrep, paramRouteResolver)
+// users/:id URL Parameters ( TrieNode, buildParamRouteTree, paramRouteResolver)
 // --- V.0.1.4
 // ERROR HANDLING (after deleperation we made res.error(status, message?))
 // --- V.0.1.5
 // extending http.ServerResponse to have res.json() and res.send()
+// --- v.0.1.6
+// module, export assign, (how do you make the user create a server using the custom classes? export a custom createServer?, what if he wanted to pass his own options, does express expose it's own custom incomingMessage class, serverResponse class?)
 //
 // ------ next up ------
-// module, export assign, (how do you make the user create a server using the custom classes? export a custom createServer?, what if he wanted to pass his own options, does express expose it's own custom incomingMessage class, serverResponse class?)
 
 // Middle ware
 
@@ -24,7 +25,7 @@
 const http = require('http'); // Import Node.js core http module
 
 const URL = require('url') // Import url module for URL parsing
-const { PassThrough } = require('stream');
+
 const routes = new Map() // Create a Map to store the routes
 
 const { IncomingMessage, ServerResponse } = http;
@@ -96,7 +97,7 @@ class TrieNode {
 const routeTrie = new TrieNode('root', '/');
 
 // Insert route into trie
-function paramRoutePrep(route) {
+function buildParamRouteTree(route) {
     // a new function routePrep which will be used within the assign function to save the routes in the trie.
     const parts = route.slice(1).split('/'); // to remove the first empty element from the parts array
 
@@ -127,50 +128,12 @@ const makeRoute = (route) => {
 // Assign a callback to a route + method combination
 const assign = (route, method, callback) => {
     if (!http.METHODS.includes(method.toUpperCase())) throw new Error('Unknown method' + method)
-    if (route.includes(":")) paramRoutePrep(route)
+    if (route.includes(":")) buildParamRouteTree(route)
     let obj = makeRoute(route) // Get route object
 
     obj[method.toUpperCase()] = callback // Assign callback 
 }
 
-// --------- Example route handlers ---------- 
-const users = [
-    { id: 1, name: 'John' },
-    { id: 2, name: 'Jane' }
-];
-assign('/', 'GET', (req, res) => {
-    res.send('get /');
-})
-
-assign('/users', 'GET', (req, res) => {
-
-    res.json(users);
-
-})
-assign('/users', 'POST', (req, res) => {
-    // Create dummy user
-    const user = {
-        id: users.length + 1,
-        name: 'New User'
-    };
-
-    users.push(user);
-
-    res.json(user);
-})
-assign('/users/:userId/posts/:postId', 'GET', (req, res) => {
-
-    res.json(req.params);
-});
-
-// error routes
-assign('/error1', 'GET', (req, res) => {
-    throw 418;
-});
-
-assign('/error2', 'GET', (req, res) => {
-    res.error(418, 'It\'s teatime bitch!');
-});
 
 // ------------
 const paramRouteResolver = (pathName) => {
@@ -236,19 +199,87 @@ const caller = (req, res) => {
     }
 }
 
+
+const createServer = (options, requestListener) => {
+    const [userOptions, userRequestListener] = typeof arg1 === 'function' ? [{}, options] : [options, requestListener];
+
+    // Default options
+    let defaultOptions = {
+        IncomingMessage: CustomIncomingMessage,
+        ServerResponse: CustomServerResponse
+    };
+
+    // Spread user options to override  
+    options = { ...defaultOptions, ...userOptions };
+
+    const server = http.createServer(options);
+
+    if (userRequestListener) {
+        server.on('request', userRequestListener);
+    }
+
+    server.on('request', caller);
+
+    return server;
+
+}
+// --------- Example route handlers ---------- 
+
+
 // Create server
-const server = http.createServer({
+if (require.main === module) {
+    const server = createServer()
+
+
+    // Start server
+    server.listen(3001, () => {
+        console.log('listening on port 3001')
+    });
+
+    const users = [
+        { id: 1, name: 'John' },
+        { id: 2, name: 'Jane' }
+    ];
+    assign('/', 'GET', (req, res) => {
+        res.send('get /');
+    })
+
+    assign('/users', 'GET', (req, res) => {
+
+        res.json(users);
+
+    })
+    assign('/users', 'POST', (req, res) => {
+        // Create dummy user
+        const user = {
+            id: users.length + 1,
+            name: 'New User'
+        };
+
+        users.push(user);
+
+        res.json(user);
+    })
+    assign('/users/:userId/posts/:postId', 'GET', (req, res) => {
+
+        res.json(req.params);
+    });
+
+    // error routes
+    assign('/error1', 'GET', (req, res) => {
+        throw 418;
+    });
+
+    assign('/error2', 'GET', (req, res) => {
+        res.error(418, 'It\'s teatime bitch!');
+    });
+}
+
+
+module.exports = {
     IncomingMessage: CustomIncomingMessage,
-    ServerResponse: CustomServerResponse
-})
+    ServerResponse: CustomServerResponse,
+    createServer,
+    assign
 
-server.addListener('request', (req, res) => {
-    // request event
-    caller(req, res) // Handle all requests
-
-})
-
-// Start server
-server.listen(3000, () => {
-    console.log('listening on port 3000')
-});
+}

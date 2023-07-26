@@ -16,7 +16,11 @@
 // extending http.ServerResponse to have res.json() and res.send()
 // --- v.0.1.6
 // module, export assign, (how do you make the user create a server using the custom classes? export a custom createServer?, what if he wanted to pass his own options, does express expose it's own custom incomingMessage class, serverResponse class?)
-//
+// "if (require.main === module)" so that the builtin server app wont run when an external code import the module
+// --- v.0.2.0  
+// renaming "assign" to "route", removing the builtin server app, added res.status(xxx).send(m)
+
+
 // ------ next up ------
 
 // Middle ware
@@ -44,11 +48,16 @@ class CustomServerResponse extends ServerResponse {
         this.end();
     }
 
+    status(code) {
+        this.statusCode = code;
+        return this;
+    }
+
     send(body = '', status = 200) {
 
 
-        // Default status code to 200
-        this.statusCode = status
+        // check if the function status was used before this Default status code to status, 
+        this.statusCode = this.statusCode ?? status
 
         // Set Content-Type based on data type
 
@@ -126,7 +135,7 @@ const makeRoute = (route) => {
 }
 
 // Assign a callback to a route + method combination
-const assign = (route, method, callback) => {
+const route = (route, method, callback) => {
     if (!http.METHODS.includes(method.toUpperCase())) throw new Error('Unknown method' + method)
     if (route.includes(":")) buildParamRouteTree(route)
     let obj = makeRoute(route) // Get route object
@@ -226,60 +235,12 @@ const createServer = (options, requestListener) => {
 // --------- Example route handlers ---------- 
 
 
-// Create server
-if (require.main === module) {
-    const server = createServer()
-
-
-    // Start server
-    server.listen(3001, () => {
-        console.log('listening on port 3001')
-    });
-
-    const users = [
-        { id: 1, name: 'John' },
-        { id: 2, name: 'Jane' }
-    ];
-    assign('/', 'GET', (req, res) => {
-        res.send('get /');
-    })
-
-    assign('/users', 'GET', (req, res) => {
-
-        res.json(users);
-
-    })
-    assign('/users', 'POST', (req, res) => {
-        // Create dummy user
-        const user = {
-            id: users.length + 1,
-            name: 'New User'
-        };
-
-        users.push(user);
-
-        res.json(user);
-    })
-    assign('/users/:userId/posts/:postId', 'GET', (req, res) => {
-
-        res.json(req.params);
-    });
-
-    // error routes
-    assign('/error1', 'GET', (req, res) => {
-        throw 418;
-    });
-
-    assign('/error2', 'GET', (req, res) => {
-        res.error(418, 'It\'s teatime bitch!');
-    });
-}
 
 
 module.exports = {
     IncomingMessage: CustomIncomingMessage,
     ServerResponse: CustomServerResponse,
     createServer,
-    assign
+    route,
 
 }

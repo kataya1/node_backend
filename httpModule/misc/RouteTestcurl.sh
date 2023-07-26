@@ -17,6 +17,14 @@ echo
 curl http://localhost:3000/users/123/posts/456
 echo
 
+# POST NOT FOUND
+curl http://localhost:3000/users/1/posts/499
+echo
+
+# Route parameters
+curl http://localhost:3000/users/1/posts/2
+echo
+
 
 # Error routes
 curl http://localhost:3000/error1

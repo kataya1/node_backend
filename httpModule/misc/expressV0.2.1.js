@@ -19,20 +19,23 @@
 // "if (require.main === module)" so that the builtin server app wont run when an external code import the module
 // --- v.0.2.0  
 // renaming "assign" to "route", removing the builtin server app, added res.status(xxx).send(m)
-
-
+// --- v.0.2.1 
+// Middle ware: add middleware function with "use" and can add multiple middleware function in "route". why use "next()" don't know, just making it like express 
 // ------ next up ------
+// making sure it works when deployed
+// using external middleware libraries like CORS
+// npm package repress.js
+// an app using repress.js the npm package
 
-// Middle ware
 
 
 const http = require('http'); // Import Node.js core http module
+const { IncomingMessage, ServerResponse } = http;
 
 const URL = require('url') // Import url module for URL parsing
 
 const routes = new Map() // Create a Map to store the routes
 
-const { IncomingMessage, ServerResponse } = http;
 class CustomIncomingMessage extends IncomingMessage {
     constructor() {
         super();
@@ -135,12 +138,15 @@ const makeRoute = (route) => {
 }
 
 // Assign a callback to a route + method combination
-const route = (route, method, callback) => {
+const route = (route, method, ...callback) => {
     if (!http.METHODS.includes(method.toUpperCase())) throw new Error('Unknown method' + method)
     if (route.includes(":")) buildParamRouteTree(route)
     let obj = makeRoute(route) // Get route object
 
-    obj[method.toUpperCase()] = callback // Assign callback 
+    obj[method.toUpperCase()] = {
+        handler: callback.at(-1),
+        middleware: callback.slice(0, -1)
+    } // Assign callback 
 }
 
 
@@ -191,9 +197,10 @@ const caller = (req, res) => {
 
         req.params = parameters
         // assigned callback function 
-        let handler = routes.get(endpoint)[method.toUpperCase()] // Get route handler
-        if (!handler) throw 405;
-        handler(req, res) // Call handler
+        let handlerObj = routes.get(endpoint)[method.toUpperCase()] // Get route handler
+        if (!handlerObj) throw 405;
+        middleWareCaller(req, res, handlerObj) // middleware function
+        // handler(req, res) // Call handler
 
     } catch (err) {
         console.log(err)
@@ -232,15 +239,30 @@ const createServer = (options, requestListener) => {
     return server;
 
 }
-// --------- Example route handlers ---------- 
+// ------- MIDDLEWARE -------
 
+const middleware = []
+const use = (fn) => {
+    middleware.push(fn)
+}
+const middleWareCaller = (req, res, handlerObj) => {
+    let index = 0;
+    let fullmiddleware = [...middleware, ...handlerObj.middleware]
+    const next = () => {
+        const middlewareFn = fullmiddleware[index++];
+        if (!middlewareFn) return handlerObj.handler(req, res);
 
+        middlewareFn(req, res, next);
+    }
 
+    next();
+}
 
 module.exports = {
     IncomingMessage: CustomIncomingMessage,
     ServerResponse: CustomServerResponse,
     createServer,
     route,
+    use
 
 }

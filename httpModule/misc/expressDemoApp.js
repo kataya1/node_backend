@@ -1,4 +1,4 @@
-const myExpress = require('./expressV0.2.0.js');
+const myExpress = require('./expressV0.2.1.js');
 
 const { createServer, route } = myExpress;
 
@@ -31,6 +31,13 @@ const users = [
 ];
 
 route('/', 'GET', (req, res) => {
+    res.send('get /');
+})
+
+route('/', 'GET', (req, res, next) => {
+    console.log('middleware 1')
+    next()
+}, (req, res) => {
     res.send('get /');
 })
 

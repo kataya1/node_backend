@@ -1,8 +1,21 @@
 const myExpress = require('./expressV0.2.1.js');
 
-const { createServer, route } = myExpress;
+const { createServer, route, use } = myExpress;
 
-
+const middleware1 = (req, res, next) => {
+    process.stdout.write('mw1👉');
+    next();
+}
+const middleware2 = (req, res, next) => {
+    process.stdout.write('mw2👉 ');
+    next();
+}
+const logger = (req, res, next) => {
+    console.log(`${req.method} ${req.url} - ${Date.now()}`);
+    next();
+}
+use([middleware1, middleware2])
+use(logger)
 // Create server
 const server = createServer()
 
@@ -30,27 +43,38 @@ const users = [
     }
 ];
 
+
+
 route('/', 'GET', (req, res) => {
     res.send('get /');
 })
 
-route('/', 'GET', (req, res, next) => {
-    console.log('middleware 1')
-    next()
-}, (req, res) => {
-    res.send('get /');
+const removePosts = (req, res, next) => {
+    const modifiedUsers = users.map(user => {
+        const { posts, ...rest } = user;
+        return rest;
+    });
+
+    // persist state/info from one middleware to the next
+    res.locals.users = modifiedUsers
+    req.users = modifiedUsers;
+
+    next();
+}
+
+route('/users', 'GET', removePosts, (req, res) => {
+
+    // res.json(req.users);
+    res.json(res.locals.users)
+
 })
 
-route('/users', 'GET', (req, res) => {
-
-    res.json(users);
-
-})
 route('/users', 'POST', (req, res) => {
     // Create dummy user
     const user = {
         id: users.length + 1,
-        name: 'New User'
+        name: 'New User',
+        posts: []
     };
 
     users.push(user);

@@ -8,19 +8,22 @@
 // caller function: function that calls routes
 // bugs: makerout function , trailing slashes 
 // - Handle errors centrally, like 404s. Handle 404 errors for undefined routes at the end.
-// --- V.0.1.3
+// --- V0.1.3
 // users/:id URL Parameters ( TrieNode, buildParamRouteTree, paramRouteResolver)
-// --- V.0.1.4
+// --- V0.1.4
 // ERROR HANDLING (after deleperation we made res.error(status, message?))
-// --- V.0.1.5
+// --- V0.1.5
 // extending http.ServerResponse to have res.json() and res.send()
-// --- v.0.1.6
+// --- v0.1.6
 // module, export assign, (how do you make the user create a server using the custom classes? export a custom createServer?, what if he wanted to pass his own options, does express expose it's own custom incomingMessage class, serverResponse class?)
 // "if (require.main === module)" so that the builtin server app wont run when an external code import the module
-// --- v.0.2.0  
+// --- v0.2.0  
 // renaming "assign" to "route", removing the builtin server app, added res.status(xxx).send(m)
-// --- v.0.2.1 
-// Middle ware: add middleware function with "use" and can add multiple middleware function in "route". why use "next()" don't know, just making it like express 
+// --- v0.2.1 
+// Middle ware: add middleware function with "use" and can add multiple middleware function in "route" handler -> handlerObj {middleware ,handler}. why use "next()" don't know, just making it like express 
+// --- v0.2.2
+// modified "use()" so that it can accept an array of functions
+// modified customServRspnse to have "locals" object (persist data/state between middleware using it)
 // ------ next up ------
 // making sure it works when deployed
 // using external middleware libraries like CORS
@@ -28,7 +31,7 @@
 // an app using repress.js the npm package
 
 
-
+// expressV0.2.1.js
 const http = require('http'); // Import Node.js core http module
 const { IncomingMessage, ServerResponse } = http;
 
@@ -37,14 +40,17 @@ const URL = require('url') // Import url module for URL parsing
 const routes = new Map() // Create a Map to store the routes
 
 class CustomIncomingMessage extends IncomingMessage {
-    constructor() {
-        super();
+    constructor(...args) {
+        super(...args);
         this.params = {};
 
     }
 }
 class CustomServerResponse extends ServerResponse {
-
+    constructor(...args) {
+        super(...args);
+        this.locals = {}; //persist data between middleware res.locals.users
+    }
     json(data) {
         this.setHeader('Content-Type', 'application/json');
         this.write(JSON.stringify(data));
@@ -150,7 +156,9 @@ const route = (route, method, ...callback) => {
 }
 
 
-// ------------
+// ------------ server running funcctions ---- 
+
+
 const paramRouteResolver = (pathName) => {
 
     // pathName = "/user/123/post/31a"
@@ -242,8 +250,17 @@ const createServer = (options, requestListener) => {
 // ------- MIDDLEWARE -------
 
 const middleware = []
-const use = (fn) => {
-    middleware.push(fn)
+const use = (...args) => {
+    if (args.length === 1 && Array.isArray(args[0])) {
+        args = args[0];
+    }
+    args.forEach(arg => {
+        if (typeof arg !== 'function') {
+            throw new Error('Middleware must be a function!');
+
+        }
+    })
+    middleware.push(...args);
 }
 const middleWareCaller = (req, res, handlerObj) => {
     let index = 0;

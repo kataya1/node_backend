@@ -11,6 +11,7 @@ const tomato = (req, res, next) => {
     console.log('🍅🍅🍅🍅')
     next()
 }
+
 // This is middleware 
 app.use([myLogger, tomato])
 
@@ -33,24 +34,24 @@ app.route('/books')
     .get((req, res) => {
         res.json([
             {
-              title: 'The Great Gatsby',
-              author: 'F. Scott Fitzgerald', 
-              year: 1925,
-              genres: ['novel', 'fiction', 'classic']
+                title: 'The Great Gatsby',
+                author: 'F. Scott Fitzgerald',
+                year: 1925,
+                genres: ['novel', 'fiction', 'classic']
             },
             {
-              title: 'Slaughterhouse Five',
-              author: 'Kurt Vonnegut',
-              year: 1969,
-              genres: ['novel', 'fiction', 'science fiction']
+                title: 'Slaughterhouse Five',
+                author: 'Kurt Vonnegut',
+                year: 1969,
+                genres: ['novel', 'fiction', 'science fiction']
             },
             {
-              title: 'The Catcher in the Rye',
-              author: 'J.D. Salinger',
-              year: 1951,
-              genres: ['novel', 'fiction', 'classic literature']
+                title: 'The Catcher in the Rye',
+                author: 'J.D. Salinger',
+                year: 1951,
+                genres: ['novel', 'fiction', 'classic literature']
             }
-          ]);
+        ]);
     })
     .post((req, res) => {
         res.send('Add a book')

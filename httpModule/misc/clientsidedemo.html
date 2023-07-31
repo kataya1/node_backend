@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>CORS Test</title>
+</head>
+
+<body>
+
+    <input type="text" id="userId" placeholder="Enter user ID">
+    <button id="getOne">Get User</button>
+
+    <button id="getAll">Get All Users</button>
+
+    <div id="result"></div>
+
+    <script src="frontend.js"></script>
+
+    <script>
+        // Display result
+        const resultDiv = document.getElementById('result');
+        const baseUrl = "http://localhost:3000"
+        const displayData = data => {
+            resultDiv.innerHTML = JSON.stringify(data);
+        }
+
+        // Get one user
+        document.getElementById('getOne').addEventListener('click', () => {
+            // Call API
+            const id = document.getElementById('userId').value;
+
+            fetch(baseUrl + '/users/' + id)
+                .then(response => response.json())
+                .then(user => {
+                    displayData(user);
+                })
+        });
+
+        // Get all users
+        document.getElementById('getAll').addEventListener('click', () => {
+            fetch(baseUrl + '/users')
+                .then(response => response.json())
+                .then(data => {
+                    displayData(data);
+                })
+        });
+    </script>
+
+</body>
+
+</html>

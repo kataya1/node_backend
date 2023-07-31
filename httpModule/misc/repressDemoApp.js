@@ -1,6 +1,8 @@
-const myExpress = require('./expressV0.2.1.js');
-
+const myExpress = require('./expressV0.2.2.js');
+const cors = require('cors');
 const { createServer, route, use } = myExpress;
+const { routes, paramRouteResolver, getRouteFromURL } = myExpress;
+use(cors())
 
 const middleware1 = (req, res, next) => {
     process.stdout.write('mw1👉');
@@ -16,6 +18,18 @@ const logger = (req, res, next) => {
 }
 use([middleware1, middleware2])
 use(logger)
+
+// custom 404 that works 50% of the time
+use((req, res, next) => {
+    let route = getRouteFromURL(req.url)
+    if (!routes.has(paramRouteResolver(getRouteFromURL(req.url)).paramRoute)) {
+        res.error(400, `🤷‍♀️ ${route} not found`)
+        return
+    }
+    next()
+
+})
+
 // Create server
 const server = createServer()
 

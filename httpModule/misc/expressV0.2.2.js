@@ -24,17 +24,28 @@
 // --- v0.2.2
 // modified "use()" so that it can accept an array of functions
 // modified customServRspnse to have "locals" object (persist data/state between middleware using it)
+
+// --- v0.2.3
+// exported more things.
+// used external middleware libraries like CORS (works now)
+// bug: cors work but you get both cors error and 404 for undefined routes, Fix: need to change the caller function so that middleware runs regardless if there is a route or a handler
+// didn't need to modify the middlewareCaller function for the fix
+// fixed some bugs that made the lib behave irruglargly if the user tried to make custom error middleware
+// renamed some stuff caller -> routeCaller, route (returned from paramRouteResolver) -> paramRoute.
+// changed the catch block to call middlewareCaller instead of the try block
+// 
 // ------ next up ------
+//
 // making sure it works when deployed
-// using external middleware libraries like CORS
 // npm package repress.js
 // an app using repress.js the npm package
+// 
+// errors ? (err, req, res, next)
 
 
-// expressV0.2.1.js
+// expressV0.2.2.js
 const http = require('http'); // Import Node.js core http module
 const { IncomingMessage, ServerResponse } = http;
-
 const URL = require('url') // Import url module for URL parsing
 
 const routes = new Map() // Create a Map to store the routes
@@ -90,7 +101,7 @@ class CustomServerResponse extends ServerResponse {
 
     }
 
-    error(status = 100, message = http.STATUS_CODES[status]) {
+    error(status = 500, message = http.STATUS_CODES[status]) {
         this.statusCode = status; // set's the status code on the header 
         this.setHeader('Content-Type', 'application/json');
         // this.writeHead(status, http.STATUS_CODES[status]); 
@@ -114,6 +125,8 @@ class TrieNode {
 // Trie to store routes  
 const routeTrie = new TrieNode('root', '/');
 
+
+// --------------- server setup functions --------
 // Insert route into trie
 function buildParamRouteTree(route) {
     // a new function routePrep which will be used within the assign function to save the routes in the trie.
@@ -142,6 +155,12 @@ const makeRoute = (route) => {
 
     return routes.get(route)
 }
+class RouteMethodInfo {
+    constructor(handler = () => { }, middleware = []) {
+        this.handler = handler
+        this.middleware = middleware
+    }
+}
 
 // Assign a callback to a route + method combination
 const route = (route, method, ...callback) => {
@@ -149,80 +168,13 @@ const route = (route, method, ...callback) => {
     if (route.includes(":")) buildParamRouteTree(route)
     let obj = makeRoute(route) // Get route object
 
-    obj[method.toUpperCase()] = {
-        handler: callback.at(-1),
-        middleware: callback.slice(0, -1)
-    } // Assign callback 
+    obj[method.toUpperCase()] = new RouteMethodInfo(callback.at(-1), callback.slice(0, -1))
+
+    // {
+    //     handler: callback.at(-1),
+    //     middleware: callback.slice(0, -1)
+    // } // Assign callback 
 }
-
-
-// ------------ server running funcctions ---- 
-
-
-const paramRouteResolver = (pathName) => {
-
-    // pathName = "/user/123/post/31a"
-    // imagine a function called paramRouteResolver that takes pathName as input and the return (string) is assigned to a route variable. for example the function will take "/user/12" and return "/user/:id" .this function is called inside the caller function and the return will be the route checked to see if it's contained in the routes map. i'm thinking this function needs to return params as well, since well need to know what the id is.
-    let route = '';
-    let params = {};
-    let pathParts = pathName.split('/').filter(p => p); // to remove the empty first element from the parts array
-
-    let currNode = routeTrie;
-
-    for (let part of pathParts) {
-
-        if (currNode.children[part]) {
-            currNode = currNode.children[part];
-            route += `/${part}`;
-        } else if (currNode.children[':param']) {
-            let paramName = currNode.children[':param'].data;
-            params[paramName] = part;
-            route += `/:${paramName}`;
-            currNode = currNode.children[":param"];
-        } else {
-            break;
-        }
-    }
-
-    return { route, params };
-}
-
-
-// Route handler function  
-const caller = (req, res) => {
-    try {
-        let reqUrl = URL.parse(req.url, true) // Parse request URL
-        let method = req.method // Get request method
-        let endpoint = reqUrl.pathname.replace(/\/$/, '') || '/' // Normalize pathname
-        let parameters = {};
-        if (!routes.has(endpoint)) {
-            let { route, params } = paramRouteResolver(endpoint)
-            // [endpoint, parameters] = [route, params] // why doesn't this work?
-            endpoint = route
-            parameters = params
-            if (!routes.has(route)) throw 404
-        }
-
-        req.params = parameters
-        // assigned callback function 
-        let handlerObj = routes.get(endpoint)[method.toUpperCase()] // Get route handler
-        if (!handlerObj) throw 405;
-        middleWareCaller(req, res, handlerObj) // middleware function
-        // handler(req, res) // Call handler
-
-    } catch (err) {
-        console.log(err)
-        if (typeof err === 'number') {
-            res.error(err);
-        } else {
-            console.log(err);
-            res.error();
-        }
-    } finally {
-        res.end()
-    }
-}
-
 
 const createServer = (options, requestListener) => {
     const [userOptions, userRequestListener] = typeof arg1 === 'function' ? [{}, options] : [options, requestListener];
@@ -242,7 +194,7 @@ const createServer = (options, requestListener) => {
         server.on('request', userRequestListener);
     }
 
-    server.on('request', caller);
+    server.on('request', routeCaller);
 
     return server;
 
@@ -275,11 +227,104 @@ const middleWareCaller = (req, res, handlerObj) => {
     next();
 }
 
+
+// ------------ server running funcctions ---- 
+
+
+const paramRouteResolver = (pathName) => {
+
+    // pathName = "/user/123/post/31a"
+    // imagine a function called paramRouteResolver that takes pathName as input and the return (string) is assigned to a route variable. for example the function will take "/user/12" and return "/user/:id" .this function is called inside the caller function and the return will be the route checked to see if it's contained in the routes map. i'm thinking this function needs to return params as well, since well need to know what the id is.
+    let paramRoute = '';
+    let params = {};
+    let pathParts = pathName.split('/').filter(p => p); // to remove the empty first element from the parts array
+    if (pathParts.length === 0) return { paramRoute: pathName, params }
+    let currNode = routeTrie;
+
+    for (let part of pathParts) {
+
+        if (currNode.children[part]) {
+            currNode = currNode.children[part];
+            paramRoute += `/${part}`;
+        } else if (currNode.children[':param']) {
+            let paramName = currNode.children[':param'].data;
+            params[paramName] = part;
+            paramRoute += `/:${paramName}`;
+            currNode = currNode.children[":param"];
+        } else {
+            return { paramRoute: pathName, params }
+        }
+    }
+
+
+    return { paramRoute, params };
+}
+
+const getRouteFromURL = (url) => {
+    let reqUrl = URL.parse(url, true) // Parse request URL
+    let route = reqUrl.pathname.replace(/\/$/, '') || '/' // Normalize pathname
+    return route
+}
+// Route handler function  
+const routeCaller = (req, res) => {
+    try {
+        // let reqUrl = URL.parse(req.url, true) // Parse request URL
+        let method = req.method // Get request method
+        // let endpoint = reqUrl.pathname.replace(/\/$/, '') || '/' // Normalize pathname
+        let endpoint = getRouteFromURL(req.url)
+        let parameters = {};
+        if (!routes.has(endpoint)) {
+            let { paramRoute, params } = paramRouteResolver(endpoint)
+            // [endpoint, parameters] = [route, params] // why doesn't this work?
+            endpoint = paramRoute
+            parameters = params
+            // if (!routes.has(route)) throw 404
+            if (!routes.has(paramRoute)) {
+                throw 404
+
+                // middleWareCaller(req, res, new RouteMethodInfo(() => { res.error(404, `endpoint: "${endpoint}" not found`) }))
+                return
+            }
+        }
+
+        req.params = parameters
+        // assigned callback function 
+        let handlerObj = routes.get(endpoint)[method.toUpperCase()] // Get route handler
+        // if (!handlerObj) throw 405;
+        if (!handlerObj) {
+            throw 405
+            // middleWareCaller(req, res, new RouteMethodInfo(() => { throw 405; }))
+        }
+        middleWareCaller(req, res, handlerObj) // middleware function
+        // handler(req, res) // Call handler
+
+    } catch (err) {
+        if (typeof err === 'number') {
+            middleWareCaller(req, res, new RouteMethodInfo(() => { res.error(err); }))
+
+        } else {
+            console.log(err);
+            middleWareCaller(req, res, new RouteMethodInfo(() => { res.error(500); }))
+        }
+    } finally {
+        res.end()
+    }
+}
+
+
+
+
 module.exports = {
     IncomingMessage: CustomIncomingMessage,
     ServerResponse: CustomServerResponse,
     createServer,
     route,
-    use
-
+    use,
+    routes,
+    routeCaller,
+    middleware,
+    middleWareCaller,
+    paramRouteResolver,
+    RouteMethodInfo,
+    getRouteFromURL,
 }

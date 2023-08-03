@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <div>
+        <input id="ws-route" type="text" value="/" />
+        <button id="connect-btn"> reconnect </button>
+        <button id="send-btn"> send data </button>
+    </div>
+    <script>
+        const wsBaseUrl = 'ws://localhost:3000';
+        function openHandler() {
+            console.log('WebSocket opened!');
+        }
+
+        function messageHandler(event) {
+            console.log(`Message received: ${event.data}`);
+        }
+
+        function errorHandler(error) {
+            console.log('WebSocket error: ' + error);
+        }
+
+        function closeHandler() {
+            console.log('WebSocket closed');
+        }
+
+        // Initialize WebSocket
+        function initWebSocket() {
+            const route = document.getElementById('ws-route').value;
+            const socket = new WebSocket(wsBaseUrl + route);
+
+            socket.onopen = openHandler;
+            socket.onmessage = messageHandler;
+            socket.onerror = errorHandler;
+            socket.onclose = closeHandler;
+
+            return socket;
+        }
+
+        // Initial call
+        let socket = initWebSocket();
+
+        // Reconnect  button
+        const connectBtn = document.getElementById('connect-btn');
+
+
+        connectBtn.addEventListener('click', () => {
+            if (socket.readyState === WebSocket.CLOSING) {
+                socket.onclose = () => {
+                    socket = initWebSocket();
+                };
+
+            } else if (socket.readyState === WebSocket.CLOSED) {
+                socket = initWebSocket();
+
+            } else {
+                socket.close();
+                socket.onclose = () => {
+                    socket = initWebSocket();
+                };
+            }
+        });
+
+        /// ----- send message button ------ 
+        const sendBtn = document.getElementById('send-btn');
+
+        function getCurrentDate() {
+            const date = new Date();
+            return date.toISOString();
+        }
+
+        // Send date when clicked
+        sendBtn.addEventListener('click', () => {
+            const date = getCurrentDate();
+            if (socket.readyState !== WebSocket.OPEN) {
+                return;
+            }
+
+            socket.send(date);
+
+            console.log('Sent: ' + date);
+        });
+    </script>
+</body>
+
+</html>

@@ -38,6 +38,8 @@ server.listen(1337, () => {
         },
     };
 
+    // make upgrade request
+
     const req = http.request(options);
     req.end();
 
@@ -47,6 +49,7 @@ server.listen(1337, () => {
 
     });
 
+    // try commenting this before running 
     http.get('http://localhost:1337', (res) => {
         res.on('data', (chunk) => {
             console.log('Response: ' + chunk);
@@ -59,9 +62,11 @@ server.listen(1337, () => {
 // It seems request listener doesn't trigger on upgrade event 
 
 // server is listening on port 1337
+
 // Connection: connection event
 // Upgrade: upgrade event
 // got upgraded!
+
 // Connection: connection event
 // Request: server callback request listener 
 // Request: on request event listener 

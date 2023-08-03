@@ -1,3 +1,4 @@
+// IncomingMessage (req)- Represents an incoming HTTP request. Passed to the createServer() callback. Very commonly used. 
 
 const http = require('http');
 const url = require('url');
@@ -19,7 +20,7 @@ const server = http.createServer((req, res) => {
         body += chunk;
         console.log('Received data:', chunk);
     });
-    // it's weird that the http documentation doesn't have the data event? in node:stream the class extendes stream.readable
+    // it's weird that the http documentation doesn't have the data event? in node:stream the class extendes stream.readable. because it inherits from another. read the other's docs
     req.on('end', () => {
         // full body received  
         console.log('Request body ended');

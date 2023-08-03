@@ -1,3 +1,6 @@
+
+```js
+
 http.METHODS
 http.STATUS_CODES
 http.createServer([options][, requestListener])
@@ -10,3 +13,5 @@ http.request(url[, options][, callback])
 http.validateHeaderName(name[, label])
 http.validateHeaderValue(name, value)
 http.setMaxIdleHTTPParsers(max)
+
+```

@@ -1,3 +1,4 @@
+// ServerResponse (res) - Represents an HTTP response the server will return. Passed to createServer() callback. Very commonly used.  (res)
 const http = require('http');
 
 http.createServer((req, res) => {

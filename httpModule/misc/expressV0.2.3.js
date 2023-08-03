@@ -24,7 +24,6 @@
 // --- v0.2.2
 // modified "use()" so that it can accept an array of functions
 // modified customServRspnse to have "locals" object (persist data/state between middleware using it)
-
 // --- v0.2.3
 // exported more things.
 // used external middleware libraries like CORS (works now)
@@ -33,7 +32,9 @@
 // fixed some bugs that made the lib behave irruglargly if the user tried to make custom error middleware
 // renamed some stuff caller -> routeCaller, route (returned from paramRouteResolver) -> paramRoute.
 // changed the catch block to call middlewareCaller instead of the try block
-// 
+// -- 
+//
+//
 // ------ next up ------
 //
 // making sure it works when deployed

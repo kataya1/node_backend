@@ -2,91 +2,46 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Chat Room App</title>
 </head>
 
 <body>
-    <div>
-        <input id="ws-route" type="text" value="/" />
-        <button id="connect-btn"> reconnect </button>
-        <button id="send-btn"> send data </button>
-    </div>
+    <input id="messageInput" type="text" />
+    <button id="sendBtn"> Send </button>
+    <span id="status"></span>
+    <div id="messages"></div>
     <script>
-        const wsBaseUrl = 'ws://localhost:3000';
-        function openHandler() {
-            console.log('WebSocket opened!');
-        }
+        // Create WebSocket connection 
+        const socket = new WebSocket('ws://localhost:8000/room/123');
+        const status = document.getElementById('status')
+        const messageInput = document.getElementById('messageInput').value;
+        const messages = document.getElementById('messages')
+        // On open
+        socket.onopen = () => {
+            console.log('Connected to server');
+            status.innerHTML = 'Connected'
+            // Send initial message
+            socket.send('Hello from client!');
+        };
+        // On message received
+        socket.onmessage = (event) => {
+            const message = event.data;
+            messages.innerHTML += `<p>${message}</p>`
 
-        function messageHandler(event) {
-            console.log(`Message received: ${event.data}`);
-        }
-
-        function errorHandler(error) {
-            console.log('WebSocket error: ' + error);
-        }
-
-        function closeHandler() {
-            console.log('WebSocket closed');
-        }
-
-        // Initialize WebSocket
-        function initWebSocket() {
-            const route = document.getElementById('ws-route').value;
-            const socket = new WebSocket(wsBaseUrl + route);
-
-            socket.onopen = openHandler;
-            socket.onmessage = messageHandler;
-            socket.onerror = errorHandler;
-            socket.onclose = closeHandler;
-
-            return socket;
-        }
-
-        // Initial call
-        let socket = initWebSocket();
-
-        // Reconnect  button
-        const connectBtn = document.getElementById('connect-btn');
-
-
-        connectBtn.addEventListener('click', () => {
-            if (socket.readyState === WebSocket.CLOSING) {
-                socket.onclose = () => {
-                    socket = initWebSocket();
-                };
-
-            } else if (socket.readyState === WebSocket.CLOSED) {
-                socket = initWebSocket();
-
-            } else {
-                socket.close();
-                socket.onclose = () => {
-                    socket = initWebSocket();
-                };
-            }
-        });
-
-        /// ----- send message button ------ 
-        const sendBtn = document.getElementById('send-btn');
-
-        function getCurrentDate() {
-            const date = new Date();
-            return date.toISOString();
-        }
-
-        // Send date when clicked
-        sendBtn.addEventListener('click', () => {
-            const date = getCurrentDate();
-            if (socket.readyState !== WebSocket.OPEN) {
-                return;
-            }
-
-            socket.send(date);
-
-            console.log('Sent: ' + date);
-        });
+        };
+        // On error
+        socket.onerror = (error) => {
+            console.log('WebSocket error: ', error);
+        };
+        // On close
+        socket.onclose = (event) => {
+            console.log('Disconnected from server', event);
+            status.innerHTML = 'Disconnected'
+        };
+        // Send message on button click
+        document.getElementById('sendBtn').onclick = () => {
+            socket.send(messageInput.value);
+        };
     </script>
 </body>
 

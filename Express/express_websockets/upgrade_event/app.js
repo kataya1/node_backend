@@ -7,7 +7,8 @@ const websocketRoute = "/secret-websocket-Route-1234";
 
 // a map mapping the route ex: 'room/:id' to it's handler function
 const globalAppWSClosure = new Map();
-
+const express = require("express");
+const app = express();
 // definning the app.ws function
 app.ws = (route, handler) => {
   // a get rout we build to make use of express's ability of resolving routes with parameters
@@ -50,8 +51,8 @@ upgradeEventHandler = (req, socket, head) => {
 // ******************************
 
 const http = require("node:http");
-const express = require("express");
-const app = express();
+// const express = require("express");
+// const app = express();
 const ws = require("ws");
 // Start the Express app and the WebSocket server.
 
@@ -64,6 +65,7 @@ const connectionHandler = (ws, req, wss) => {
       client.send("someone sent: " + data);
     });
   });
+
 };
 const rooms = new Map(); // room id to websocket server
 // using the app.ws function
@@ -78,10 +80,11 @@ app.ws("/room/:id", (req, socket, head) => {
   } else {
     const wss = new ws.WebSocketServer({ noServer: true });
     rooms.set(id, wss);
-    wss.on("connection", (ws) => connectionHandler(ws, req, wss));
+    wss.on("connection", (ws, req) => connectionHandler(ws, req, wss));
     wss.handleUpgrade(req, socket, head, (ws) => {
       wss.emit("connection", ws, req);
     });
+
   }
 });
 

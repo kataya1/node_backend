@@ -1,0 +1,25 @@
+---
+import Navigation from "../components/Navigation.astro";
+import Button from "../components/Button.astro";
+import FancyButton from "../components/FancyButton.jsx";
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <title>Astro</title>
+  </head>
+  <body>
+    <Navigation />
+    <h1>Astro</h1>
+    <Button msg="hello world" />
+    <FancyButton text="Click Me" />
+    <FancyButton text="client render" client:visible />
+    <div style="display:none">
+      <FancyButton text="client render" client:visible />  
+    </div>
+  </body>
+</html>

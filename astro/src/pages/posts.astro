@@ -1,5 +1,10 @@
 ---
+import Navigation from "../components/Navigation.astro";
+// import * as posts from "./posts/*.md";
+import post1 from "./posts/1.md";
+// const allPosts = Object.values(posts);
 
+const allPosts = await Astro.glob("../pages/posts/*.md");
 ---
 
 <html lang="en">
@@ -11,9 +16,22 @@
     <title>Astro</title>
   </head>
   <body>
-    <a href="/">Home</a>
-    <a href="/about/">About</a>
+    <Navigation />
     <!-- there are two ways to create /posts index.astro in the posts dir or a posts.astro file -->
     <h1>posts.astro not index</h1>
+    <!-- {allPosts.map((post) => <p>{post}</p>)} -->
+    <div>
+      <!-- {post1} doesn't work like that -->
+    </div>
+    <ul>
+      {
+        allPosts.map((p) => (
+          <li>
+            {" "}
+            <a href={p.url}> {p.frontmatter.title}</a>
+          </li>
+        ))
+      }
+    </ul>
   </body>
 </html>

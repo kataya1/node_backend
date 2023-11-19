@@ -1,4 +1,7 @@
 ---
+import "../styles/global.css"; // this works
+import Navigation from "../components/Navigation.astro";
+
 const title = "var:About";
 
 const pageTitle = "About Me";
@@ -11,6 +14,12 @@ const identity = {
 };
 
 const skills = ["HTML", "CSS", "JavaScript", "React", "Astro", "Writing Docs"];
+
+const happy = true;
+const finished = false;
+const goal = 3;
+
+const h1color = "Navy";
 ---
 
 <html lang="en">
@@ -20,10 +29,19 @@ const skills = ["HTML", "CSS", "JavaScript", "React", "Astro", "Writing Docs"];
     <meta name="viewport" content="width=device-width" />
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
+    <!-- <link rel="stylesheet" href={import.meta.glob("../styles/global.css")} /> this works-->
+    <!-- <link rel="stylesheet" href=".." /> -->
+    <style define:vars={{ h1color }}>
+      h1 {
+        color: var(--h1color);
+      }
+      .skills {
+        color: coral;
+      }
+    </style>
   </head>
   <body>
-    <a href="/">Home</a>
-    <a href="/about/">About</a>
+    <Navigation/>
     <h1>{title}</h1>
     <p>Here are a few facts about me:</p>
     <ul>
@@ -42,7 +60,18 @@ const skills = ["HTML", "CSS", "JavaScript", "React", "Astro", "Writing Docs"];
     </ul>
     <p>My skills are:</p>
     <ul>
-      {skills.map((skill) => <li>{skill}</li>)}
+      {skills.map((skill) => <li class="skills">{skill}</li>)}
     </ul>
+    {happy && <p>I am happy to be learning Astro!</p>}
+
+    {finished && <p>I finished this tutorial!</p>}
+
+    {
+      goal === 3 ? (
+        <p>My goal is to finish in 3 days.</p>
+      ) : (
+        <p>My goal is not 3 days.</p>
+      )
+    }
   </body>
 </html>
